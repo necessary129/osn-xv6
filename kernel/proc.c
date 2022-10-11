@@ -461,7 +461,35 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+
+#ifdef FCFS // First-come-first-serve scheduler
+  struct proc *ep;    // The earliest process found
+  uint earliest = -1; // Use underflow to get UINT_MAX
+
+  c->proc = 0;
+  for(;;){
+
+  // Determine the process with the earliest creation time
+    for(p = proc; p < &proc[NPROC]; p++) {
+      if (proc->ctime < earliest) {
+        earliest = proc->ctime;
+        ep = proc;
+      }
+    }
+
+    p = ep;
+    acquire(&p->lock);
+    if(p->state == RUNNABLE) {
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->context, &p->context);
+      c->proc = 0;
+    }
+    release(&p->lock);
+  }
+#endif
+
+#ifdef RR // Round-robin scheduler
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
@@ -484,6 +512,7 @@ scheduler(void)
       release(&p->lock);
     }
   }
+#endif
 }
 
 // Switch to scheduler.  Must hold only p->lock

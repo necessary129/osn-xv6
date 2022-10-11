@@ -86,11 +86,13 @@ usertrap(void)
   if(killed(p))
     exit(-1);
 
+#ifndef FCFS
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
 	checkalarm(p);
 	yield();
   }
+#endif
   usertrapret();
 }
 
