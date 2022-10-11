@@ -147,6 +147,10 @@ found:
   p->context.sp = p->kstack + PGSIZE;
 
   p->trace_mask = 0;
+  p->inalarm = 0;
+  p->alarm_handler = 0;
+  p->alarm_interval = 0;
+  p->alarm_ticks = 0;
 
   return p;
 }

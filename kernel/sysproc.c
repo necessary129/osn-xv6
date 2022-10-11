@@ -98,3 +98,28 @@ uint64 sys_trace(void){
 
 	return 0;
 }
+
+uint64 sys_sigalarm(void){
+	uint64 handler_ptr;
+	int interval;
+	struct proc * proc = myproc();
+
+	argint(0, &interval);
+	argaddr(1, &handler_ptr);
+
+	proc->alarm_handler = handler_ptr;
+	proc->alarm_interval = interval;
+
+	// Reset it because another sigalarm may have set it.
+	proc->alarm_ticks = 0;
+
+	return 0;
+}
+
+uint64 sys_sigreturn(void){
+	struct proc * proc = myproc();
+	*(proc->trapframe) = proc->savedtrapframe;
+	proc->inalarm = 0;
+	// Return this because the syscall.c sets a0 to the syscall return value
+	return proc->trapframe->a0;
+}
