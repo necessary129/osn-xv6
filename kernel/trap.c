@@ -33,6 +33,17 @@ trapinithart(void)
 // handle an interrupt, exception, or system call from user space.
 // called from trampoline.S
 //
+
+void checkalarm(struct proc * p){
+  if (!p->inalarm && p->alarm_interval && ++(p->alarm_ticks) == p->alarm_interval){
+    p->inalarm = 1;
+	p->alarm_ticks = 0;
+	printf("checkalarm traps: t: %d ts: %d\n", p->trapframe->a0, p->savedtrapframe.a0);
+	p->savedtrapframe = *(p->trapframe);
+	p->trapframe->epc = p->alarm_handler;
+  }
+}
+
 void
 usertrap(void)
 {
@@ -77,9 +88,10 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-    yield();
-
+  if(which_dev == 2){
+	checkalarm(p);
+	yield();
+  }
   usertrapret();
 }
 
@@ -151,8 +163,11 @@ kerneltrap()
   }
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
-    yield();
+  if (which_dev == 2 && myproc() != 0){
+  	// checkalarm(myproc()); // Do we count kernel mode also?
+	if (myproc()->state == RUNNING)
+	  yield();
+  }
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
