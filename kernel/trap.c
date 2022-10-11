@@ -34,11 +34,10 @@ trapinithart(void)
 // called from trampoline.S
 //
 
-void checkalarm(struct proc * p){
+static inline void checkalarm(struct proc * p){
   if (!p->inalarm && p->alarm_interval && ++(p->alarm_ticks) == p->alarm_interval){
     p->inalarm = 1;
 	p->alarm_ticks = 0;
-	printf("checkalarm traps: t: %d ts: %d\n", p->trapframe->a0, p->savedtrapframe.a0);
 	p->savedtrapframe = *(p->trapframe);
 	p->trapframe->epc = p->alarm_handler;
   }
@@ -164,7 +163,7 @@ kerneltrap()
 
   // give up the CPU if this is a timer interrupt.
   if (which_dev == 2 && myproc() != 0){
-  	// checkalarm(myproc()); // Do we count kernel mode also?
+  	checkalarm(myproc()); // Do we count kernel mode also?
 	if (myproc()->state == RUNNING)
 	  yield();
   }

@@ -118,10 +118,8 @@ uint64 sys_sigalarm(void){
 
 uint64 sys_sigreturn(void){
 	struct proc * proc = myproc();
-	// printf("traps: t: %d ts: %d\n", proc->trapframe->a0, proc->savedtrapframe.a0);
 	*(proc->trapframe) = proc->savedtrapframe;
-	// printf("traps: t: %d ts: %d\n", proc->trapframe->a0, proc->savedtrapframe.a0);
 	proc->inalarm = 0;
-
-	return 0;
+	// Return this because the syscall.c sets a0 to the syscall return value
+	return proc->trapframe->a0;
 }
