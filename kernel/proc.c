@@ -468,14 +468,20 @@ scheduler(void)
 
   c->proc = 0;
   for(;;){
+    // Avoid deadlock by ensuring that devices can interrupt.
+    intr_on();
 
-  // Determine the process with the earliest creation time
+    ep = 0;
+    // Determine the process with the earliest creation time
     for(p = proc; p < &proc[NPROC]; p++) {
-      if (p->state == RUNNING && p->ctime < earliest) {
+      if (p->state == RUNNABLE && p->ctime < earliest) {
         earliest = p->ctime;
         ep = p;
       }
     }
+
+    if (ep == 0)
+      continue;
 
     p = ep;
     acquire(&p->lock);
