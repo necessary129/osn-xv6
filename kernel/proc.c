@@ -471,9 +471,9 @@ scheduler(void)
 
   // Determine the process with the earliest creation time
     for(p = proc; p < &proc[NPROC]; p++) {
-      if (proc->ctime < earliest) {
-        earliest = proc->ctime;
-        ep = proc;
+      if (p->state == RUNNING && p->ctime < earliest) {
+        earliest = p->ctime;
+        ep = p;
       }
     }
 
