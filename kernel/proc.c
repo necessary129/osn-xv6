@@ -126,9 +126,9 @@ found:
   p->state = USED;
 
   // Set the creation time to the current clock time.
-  acquire(&tickslock);
+  // acquire(&tickslock);
   p->ctime = ticks;
-  release(&tickslock);
+  // release(&tickslock);
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -395,7 +395,9 @@ exit(int status)
 
   p->xstate = status;
   p->state = ZOMBIE;
+  // acquire(&tickslock);
   p->etime = ticks;
+  // release(&tickslock);
 
   release(&wait_lock);
 
