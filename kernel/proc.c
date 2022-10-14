@@ -611,6 +611,16 @@ uint64 sys_set_priority(void){
   argint(0, &sp);
   argint(1, &pid);
 
+  if (myproc()->pid == pid){
+    p = myproc();
+    oldsp = p->priority;
+    p->stime = p->rtime = 0;
+    if (oldsp > sp){
+      yield();
+    }
+    return oldsp;
+  }
+
   for(p = proc; p < &proc[NPROC]; p++) {
       if (p->pid == pid){
         oldsp = p->priority;
