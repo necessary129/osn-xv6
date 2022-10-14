@@ -26,6 +26,7 @@ int uptime(void);
 int trace(int mask);
 int sigalarm(int interval, void (*handler));
 int sigreturn();
+int  set_priority(int, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

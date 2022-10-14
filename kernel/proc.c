@@ -18,6 +18,17 @@ struct spinlock pid_lock;
 extern void forkret(void);
 static void freeproc(struct proc *p);
 
+#define max(a, b) \
+  ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define min(a, b) \
+  ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+
 extern char trampoline[]; // trampoline.S
 
 // helps ensure that wakeups of wait()ing
@@ -152,6 +163,7 @@ found:
   p->context.sp = p->kstack + PGSIZE;
   p->rtime = 0;
   p->etime = 0;
+  p->stime = 0;
 
 
   p->trace_mask = 0;
@@ -551,6 +563,64 @@ void sched_fcfs(){
     release(&p->lock);
 }
 
+void sched_pbs() {
+  struct proc * p;
+  struct cpu *c = mycpu();
+  int dp;
+  int niceness;
+  int maxdp = 0;
+  struct proc * ep = 0;
+  for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if(p->state == RUNNABLE) {
+        if (p->rtime)
+          niceness = p->stime / (p->stime + p->rtime) * 10;
+        else
+          niceness = 5;
+        dp = max(0, min(p->priority - niceness + 5, 100));
+        if (dp >= maxdp){
+          if (ep)
+            release(&ep->lock);
+          maxdp = dp;
+          ep = p;
+          continue;
+        }
+      }
+      release(&p->lock);
+  }
+  if (!ep)
+    return;
+  
+  p = ep;
+  if (p->state == RUNNABLE){
+    p->state = RUNNING;
+    c->proc = p;
+    swtch(&c->context, &p->context);
+    c->proc = 0;
+  }
+  release(&p->lock);
+}
+
+uint64 sys_set_priority(void){
+  int pid;
+  int sp;
+  int oldsp;
+
+  struct proc *p;
+
+  argint(0, &sp);
+  argint(1, &pid);
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+      if (p->pid == pid){
+        oldsp = p->priority;
+        p->priority = sp;
+        return oldsp;
+      }
+  }
+  return -1;
+}
+
 void sched_rr(){
   struct proc * p;
   struct cpu *c = mycpu();
@@ -591,6 +661,9 @@ scheduler(void)
     #endif
     #if defined(RR)
       sched_rr();
+    #endif
+    #if defined(PBS)
+      sched_pbs();
     #endif
   }
 }

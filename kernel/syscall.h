@@ -24,3 +24,4 @@
 #define SYS_trace  23
 #define SYS_sigalarm  24
 #define SYS_sigreturn  25
+#define SYS_set_priority  27
