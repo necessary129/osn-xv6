@@ -152,7 +152,6 @@ found:
   p->context.sp = p->kstack + PGSIZE;
   p->rtime = 0;
   p->etime = 0;
-  p->ctime = ticks;
 
 
   p->trace_mask = 0;
