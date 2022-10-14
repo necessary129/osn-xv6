@@ -127,4 +127,14 @@ struct proc {
   int priority;
   int nrun;
   #endif
+
+  #if defined(MLFQ)
+  int qlevel;
+  int qwaittime;
+  int qentered;
+  int inqueue;
+  int qticks;
+  #endif
+
+
 };
