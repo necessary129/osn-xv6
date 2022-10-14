@@ -194,6 +194,8 @@ found:
   p->alarm_handler = 0;
   p->alarm_interval = 0;
   p->alarm_ticks = 0;
+  // Allocate at least one ticket so the process actually runs in LB scheduling
+  p->tickets = 1;
 
   return p;
 }
@@ -607,6 +609,54 @@ void sched_rr(){
     }
 }
 
+void sched_lb()
+{
+  int winner, count;
+  uint total_tickets;
+  struct proc *p;
+  struct cpu *c = mycpu();
+
+  total_tickets = 0;
+
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if (p->state == RUNNABLE)
+      total_tickets += p->tickets;
+    release(&p->lock);
+  }
+
+  if (total_tickets == 0)
+    return;
+
+  winner = rand() % total_tickets;
+
+  count = 0;
+
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+
+    // Keep going till we hit our winning ticket
+    if (count + p->tickets < winner)
+    {
+      if (p->state == RUNNABLE)
+        count += p->tickets;
+      continue;
+    }
+
+    if (p->state == RUNNABLE)
+    {
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->context, &p->context);
+      c->proc = 0;
+    }
+
+    release(&p->lock);
+  }
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -656,6 +706,19 @@ sched(void)
   swtch(&p->context, &mycpu()->context);
   mycpu()->intena = intena;
 }
+
+/* void */
+/* settickets(int number) */
+/* { */
+/*   struct proc *p = myproc(); */
+
+/*   acquire(&p->lock); */
+/*   uint old_tickets = p->tickets; */
+/*   p->tickets = number; */
+
+/*   total_tickets += number - old_tickets; */
+/*   release(&p->lock); */
+/* } */
 
 // Give up the CPU for one scheduling round.
 void

@@ -105,6 +105,7 @@ extern uint64 sys_close(void);
 extern uint64 sys_trace(void);
 extern uint64 sys_sigalarm(void);
 extern uint64 sys_sigreturn(void);
+extern uint64 sys_settickets(void);
 
 
 // An array mapping syscall numbers from syscall.h
@@ -135,6 +136,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_sigalarm]   sys_sigalarm,
 [SYS_sigreturn]   sys_sigreturn,
 [SYS_waitx]   sys_waitx,
+[SYS_settickets]   sys_settickets,
 };
 
 static uint16 syscall_nargs[] = {
@@ -161,6 +163,7 @@ static uint16 syscall_nargs[] = {
 [SYS_close]   1,
 [SYS_trace]   1,
 [SYS_waitx]   3,
+[SYS_settickets]   1,
 
 };
 
@@ -188,6 +191,7 @@ static char * syscall_names[] = {
 [SYS_close]   "close",
 [SYS_trace]   "trace",
 [SYS_waitx]   "waitx",
+[SYS_settickets]   "settickets",
 
 
 };

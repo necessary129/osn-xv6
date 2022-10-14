@@ -117,4 +117,6 @@ struct proc {
 
   uint rtime;                   // How long the process ran for
   uint etime;                   // When did the process exited
+
+  uint tickets;                 // How many tickets the process has
 };
