@@ -362,6 +362,7 @@ fork(void)
 
   // trace children also
   np->trace_mask = p->trace_mask;
+  np->tickets = p->tickets;
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
@@ -551,6 +552,8 @@ update_time()
     acquire(&p->lock);
     if (p->state == RUNNING) {
       p->rtime++;
+    } else if (p->state == SLEEPING){
+      p->stime++;
     }
     release(&p->lock); 
   }
@@ -607,6 +610,13 @@ void sched_rr(){
       }
       release(&p->lock);
     }
+}
+
+void sched_pbs(){
+  struct proc * p;
+  struct cpu *c = mycpu();
+
+
 }
 
 void sched_lb()
