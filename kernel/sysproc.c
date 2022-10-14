@@ -12,7 +12,7 @@ sys_exit(void)
   int n;
   argint(0, &n);
   exit(n);
-  return 0;  // not reached
+  return 0; // not reached
 }
 
 uint64
@@ -44,10 +44,10 @@ sys_waitx(void)
   argaddr(1, &addr1); // user virtual memory
   argaddr(2, &addr2);
   int ret = waitx(addr, &wtime, &rtime);
-  struct proc* p = myproc();
-  if (copyout(p->pagetable, addr1,(char*)&wtime, sizeof(int)) < 0)
+  struct proc *p = myproc();
+  if (copyout(p->pagetable, addr1, (char *)&wtime, sizeof(int)) < 0)
     return -1;
-  if (copyout(p->pagetable, addr2,(char*)&rtime, sizeof(int)) < 0)
+  if (copyout(p->pagetable, addr2, (char *)&rtime, sizeof(int)) < 0)
     return -1;
   return ret;
 }
@@ -60,7 +60,7 @@ sys_sbrk(void)
 
   argint(0, &n);
   addr = myproc()->sz;
-  if(growproc(n) < 0)
+  if (growproc(n) < 0)
     return -1;
   return addr;
 }
@@ -74,8 +74,10 @@ sys_sleep(void)
   argint(0, &n);
   acquire(&tickslock);
   ticks0 = ticks;
-  while(ticks - ticks0 < n){
-    if(killed(myproc())){
+  while (ticks - ticks0 < n)
+  {
+    if (killed(myproc()))
+    {
       release(&tickslock);
       return -1;
     }
@@ -107,36 +109,49 @@ sys_uptime(void)
   return xticks;
 }
 
-uint64 sys_trace(void){
-	int tracemask;
-	argint(0, &tracemask);
-	
-	myproc()->trace_mask = tracemask;
+uint64 sys_trace(void)
+{
+  int tracemask;
+  argint(0, &tracemask);
 
-	return 0;
+  myproc()->trace_mask = tracemask;
+
+  return 0;
 }
 
-uint64 sys_sigalarm(void){
-	uint64 handler_ptr;
-	int interval;
-	struct proc * proc = myproc();
+uint64 sys_sigalarm(void)
+{
+  uint64 handler_ptr;
+  int interval;
+  struct proc *proc = myproc();
 
-	argint(0, &interval);
-	argaddr(1, &handler_ptr);
+  argint(0, &interval);
+  argaddr(1, &handler_ptr);
 
-	proc->alarm_handler = handler_ptr;
-	proc->alarm_interval = interval;
+  proc->alarm_handler = handler_ptr;
+  proc->alarm_interval = interval;
 
-	// Reset it because another sigalarm may have set it.
-	proc->alarm_ticks = 0;
+  // Reset it because another sigalarm may have set it.
+  proc->alarm_ticks = 0;
 
-	return 0;
+  return 0;
 }
 
-uint64 sys_sigreturn(void){
-	struct proc * proc = myproc();
-	*(proc->trapframe) = proc->savedtrapframe;
-	proc->inalarm = 0;
-	// Return this because the syscall.c sets a0 to the syscall return value
-	return proc->trapframe->a0;
+uint64 sys_sigreturn(void)
+{
+  struct proc *proc = myproc();
+  *(proc->trapframe) = proc->savedtrapframe;
+  proc->inalarm = 0;
+  // Return this because the syscall.c sets a0 to the syscall return value
+  return proc->trapframe->a0;
+}
+
+uint64 sys_settickets(void)
+{
+  uint tickets;
+  argint(0, (int *)&tickets);
+
+  myproc()->tickets = tickets;
+
+  return 0;
 }

@@ -26,6 +26,7 @@ int uptime(void);
 int trace(int mask);
 int sigalarm(int interval, void (*handler));
 int sigreturn();
+void settickets(int number);
 int  set_priority(int, int);
 
 // ulib.c

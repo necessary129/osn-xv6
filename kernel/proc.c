@@ -37,6 +37,41 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+// from FreeBSD.
+static int
+do_rand(unsigned long *ctx)
+{
+/*
+ * Compute x = (7^5 * x) mod (2^31 - 1)
+ * without overflowing 31 bits:
+ *      (2^31 - 1) = 127773 * (7^5) + 2836
+ * From "Random number generators: good ones are hard to find",
+ * Park and Miller, Communications of the ACM, vol. 31, no. 10,
+ * October 1988, p. 1195.
+ */
+    long hi, lo, x;
+
+    /* Transform to [1, 0x7ffffffe] range. */
+    x = (*ctx % 0x7ffffffe) + 1;
+    hi = x / 127773;
+    lo = x % 127773;
+    x = 16807 * lo - 2836 * hi;
+    if (x < 0)
+        x += 0x7fffffff;
+    /* Transform to [0, 0x7ffffffd] range. */
+    x--;
+    *ctx = x;
+    return (x);
+}
+
+static unsigned long rand_next = 1;
+
+int
+rand(void)
+{
+    return (do_rand(&rand_next));
+}
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -172,6 +207,8 @@ found:
   p->alarm_handler = 0;
   p->alarm_interval = 0;
   p->alarm_ticks = 0;
+  // Allocate at least one ticket so the process actually runs in LB scheduling
+  p->tickets = 1;
 
   return p;
 }
@@ -341,6 +378,7 @@ fork(void)
 
   // trace children also
   np->trace_mask = p->trace_mask;
+  np->tickets = p->tickets;
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
@@ -530,6 +568,8 @@ update_time()
     acquire(&p->lock);
     if (p->state == RUNNING) {
       p->rtime++;
+    } else if (p->state == SLEEPING){
+      p->stime++;
     }
     release(&p->lock); 
   }
@@ -665,6 +705,62 @@ void sched_rr(){
     }
 }
 
+void sched_pbs(){
+  struct proc * p;
+  struct cpu *c = mycpu();
+
+
+}
+
+void sched_lb()
+{
+  int winner, count;
+  uint total_tickets;
+  struct proc *p;
+  struct cpu *c = mycpu();
+
+  total_tickets = 0;
+
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if (p->state == RUNNABLE)
+      total_tickets += p->tickets;
+    release(&p->lock);
+  }
+
+  if (total_tickets == 0)
+    return;
+
+  winner = rand() % total_tickets;
+
+  count = 0;
+
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+
+    // Keep going till we hit our winning ticket
+    if (count + p->tickets < winner)
+    {
+      if (p->state == RUNNABLE)
+        count += p->tickets;
+      release(&p->lock);
+      continue;
+    }
+
+    if (p->state == RUNNABLE)
+    {
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->context, &p->context);
+      c->proc = 0;
+    }
+
+    release(&p->lock);
+  }
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -685,6 +781,8 @@ scheduler(void)
     #if defined(RR)
       sched_rr();
     #endif
+    #if defined(LB)
+      sched_lb();
     #if defined(PBS)
       sched_pbs();
     #endif
@@ -717,6 +815,19 @@ sched(void)
   swtch(&p->context, &mycpu()->context);
   mycpu()->intena = intena;
 }
+
+/* void */
+/* settickets(int number) */
+/* { */
+/*   struct proc *p = myproc(); */
+
+/*   acquire(&p->lock); */
+/*   uint old_tickets = p->tickets; */
+/*   p->tickets = number; */
+
+/*   total_tickets += number - old_tickets; */
+/*   release(&p->lock); */
+/* } */
 
 // Give up the CPU for one scheduling round.
 void
@@ -901,3 +1012,4 @@ procdump(void)
     printf("\n");
   }
 }
+
