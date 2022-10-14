@@ -123,13 +123,13 @@ usertrap(void)
   if(killed(p))
     exit(-1);
 
-#ifndef FCFS
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
 	checkalarm(p);
+#ifndef FCFS
 	yield();
-  }
 #endif
+  }
   usertrapret();
 }
 
@@ -201,13 +201,13 @@ kerneltrap()
   }
 
   // give up the CPU if this is a timer interrupt.
-#ifndef FCFS
   if (which_dev == 2 && myproc() != 0){
   	checkalarm(myproc()); // Do we count kernel mode also?
+#ifndef FCFS
 	if (myproc()->state == RUNNING)
 	  yield();
-  }
 #endif
+  }
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.

@@ -472,19 +472,23 @@ scheduler(void)
     intr_on();
 
     ep = 0;
+    earliest = -1;
     // Determine the process with the earliest creation time
     for(p = proc; p < &proc[NPROC]; p++) {
-      if (p->state == RUNNABLE && p->ctime < earliest) {
+      acquire(&p->lock);
+      if (p->state == RUNNABLE && p->ctime <= earliest) {
+        if (ep)
+          release(&ep->lock);
         earliest = p->ctime;
         ep = p;
-      }
+      } else
+        release(&p->lock);
     }
 
     if (ep == 0)
       continue;
 
     p = ep;
-    acquire(&p->lock);
     if(p->state == RUNNABLE) {
       p->state = RUNNING;
       c->proc = p;
