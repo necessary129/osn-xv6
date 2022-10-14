@@ -519,28 +519,11 @@ update_time()
   }
 }
 
-// Per-CPU process scheduler.
-// Each CPU calls scheduler() after setting itself up.
-// Scheduler never returns.  It loops, doing:
-//  - choose a process to run.
-//  - swtch to start running that process.
-//  - eventually that process transfers control
-//    via swtch back to the scheduler.
-void
-scheduler(void)
-{
-  struct proc *p;
+void sched_fcfs(){
+  struct proc * p;
   struct cpu *c = mycpu();
-
-#ifdef FCFS // First-come-first-serve scheduler
   struct proc *ep;    // The earliest process found
   uint earliest = -1; // Use underflow to get UINT_MAX
-
-  c->proc = 0;
-  for(;;){
-    // Avoid deadlock by ensuring that devices can interrupt.
-    intr_on();
-
     ep = 0;
     earliest = -1;
     // Determine the process with the earliest creation time
@@ -556,7 +539,7 @@ scheduler(void)
     }
 
     if (ep == 0)
-      continue;
+      return;
 
     p = ep;
     if(p->state == RUNNABLE) {
@@ -566,16 +549,12 @@ scheduler(void)
       c->proc = 0;
     }
     release(&p->lock);
-  }
-#endif
+}
 
-#ifdef RR // Round-robin scheduler
-  c->proc = 0;
-  for(;;){
-    // Avoid deadlock by ensuring that devices can interrupt.
-    intr_on();
-
-    for(p = proc; p < &proc[NPROC]; p++) {
+void sched_rr(){
+  struct proc * p;
+  struct cpu *c = mycpu();
+  for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
         // Switch to chosen process.  It is the process's job
@@ -591,8 +570,29 @@ scheduler(void)
       }
       release(&p->lock);
     }
+}
+
+// Per-CPU process scheduler.
+// Each CPU calls scheduler() after setting itself up.
+// Scheduler never returns.  It loops, doing:
+//  - choose a process to run.
+//  - swtch to start running that process.
+//  - eventually that process transfers control
+//    via swtch back to the scheduler.
+void
+scheduler(void)
+{
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  for(;;){
+    intr_on();
+    #if defined(FCFS)
+      sched_fcfs();
+    #endif
+    #if defined(RR)
+      sched_rr();
+    #endif
   }
-#endif
 }
 
 // Switch to scheduler.  Must hold only p->lock

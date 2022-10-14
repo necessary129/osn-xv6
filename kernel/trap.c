@@ -126,7 +126,7 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
 	checkalarm(p);
-#ifndef FCFS
+#if PREEMPTIVE
 	yield();
 #endif
   }
@@ -203,7 +203,7 @@ kerneltrap()
   // give up the CPU if this is a timer interrupt.
   if (which_dev == 2 && myproc() != 0){
   	checkalarm(myproc()); // Do we count kernel mode also?
-#ifndef FCFS
+#if PREEMPTIVE
 	if (myproc()->state == RUNNING)
 	  yield();
 #endif
