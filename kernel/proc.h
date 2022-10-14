@@ -122,4 +122,9 @@ struct proc {
   int niceness;
 
   uint tickets;                 // How many tickets the process has
+
+  uint stime;
+
+  int priority;
+  int nrun;
 };
