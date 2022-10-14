@@ -64,6 +64,7 @@ void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
 void            safe_refinc(void *pa);
+int             safe_getref(void *pa);
 
 // log.c
 void            initlog(int, struct superblock*);

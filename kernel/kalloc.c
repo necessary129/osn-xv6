@@ -60,6 +60,14 @@ void safe_refinc(void *pa){
 	release(&kmem.lock);
 }
 
+int safe_getref(void *pa){
+  int refs;
+  acquire(&kmem.lock);
+	refs = kmem.refcount[PA2IDX(pa)];
+	release(&kmem.lock);
+  return refs;
+}
+
 // Free the page of physical memory pointed at by pa,
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when

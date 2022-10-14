@@ -53,6 +53,12 @@ int cowfault(pagetable_t pagetable, uint64 va){
 		return -1;
 	uint64 oldpa = PTE2PA(*pte);
 
+  if (safe_getref((void *)oldpa) == 1){
+    *pte = (*pte | PTE_W);
+    *pte = (*pte & ~PTE_C);
+    return 0;
+  }
+
 	uint64 newpa = (uint64) kalloc();
 
 	if (newpa == 0){
