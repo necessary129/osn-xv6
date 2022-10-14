@@ -642,6 +642,7 @@ void sched_lb()
     {
       if (p->state == RUNNABLE)
         count += p->tickets;
+      release(&p->lock);
       continue;
     }
 
@@ -676,6 +677,9 @@ scheduler(void)
     #endif
     #if defined(RR)
       sched_rr();
+    #endif
+    #if defined(LB)
+      sched_lb();
     #endif
   }
 }
