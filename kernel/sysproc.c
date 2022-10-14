@@ -146,6 +146,7 @@ uint64 sys_sigreturn(void)
   return proc->trapframe->a0;
 }
 
+#if defined(LB)
 uint64 sys_settickets(void)
 {
   uint tickets;
@@ -155,3 +156,4 @@ uint64 sys_settickets(void)
 
   return 0;
 }
+#endif

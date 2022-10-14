@@ -199,16 +199,22 @@ found:
   p->rtime = 0;
   p->etime = 0;
   p->stime = 0;
+
+  #if defined(PBS)
   p->priority = 60;
   p->nrun = 0;
+  #endif
 
   p->trace_mask = 0;
   p->inalarm = 0;
   p->alarm_handler = 0;
   p->alarm_interval = 0;
   p->alarm_ticks = 0;
+
+  #if defined(LB)
   // Allocate at least one ticket so the process actually runs in LB scheduling
   p->tickets = 1;
+  #endif
 
   return p;
 }
@@ -234,8 +240,13 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  #if defined(PBS)
   p->priority = 60;
   p->nrun = 0;
+  #endif
+  #if defined(LB)
+  p->tickets = 1;
+  #endif
 
 }
 
@@ -378,7 +389,10 @@ fork(void)
 
   // trace children also
   np->trace_mask = p->trace_mask;
+
+  #if defined(LB)
   np->tickets = p->tickets;
+  #endif
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
@@ -575,6 +589,7 @@ update_time()
   }
 }
 
+#if defined(FCFS)
 void sched_fcfs(){
   struct proc * p;
   struct cpu *c = mycpu();
@@ -606,7 +621,9 @@ void sched_fcfs(){
     }
     release(&p->lock);
 }
+#endif
 
+#if defined(PBS)
 void sched_pbs() {
   struct proc * p;
   struct cpu *c = mycpu();
@@ -653,7 +670,9 @@ void sched_pbs() {
   }
   release(&p->lock);
 }
+#endif
 
+#if defined(PBS)
 uint64 sys_set_priority(void){
   int pid;
   int sp;
@@ -683,7 +702,9 @@ uint64 sys_set_priority(void){
   }
   return -1;
 }
+#endif
 
+#if defined(RR)
 void sched_rr(){
   struct proc * p;
   struct cpu *c = mycpu();
@@ -704,14 +725,9 @@ void sched_rr(){
       release(&p->lock);
     }
 }
+#endif
 
-void sched_pbs(){
-  struct proc * p;
-  struct cpu *c = mycpu();
-
-
-}
-
+#if defined(LB)
 void sched_lb()
 {
   int winner, count;
@@ -760,6 +776,7 @@ void sched_lb()
     release(&p->lock);
   }
 }
+#endif
 
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -783,6 +800,7 @@ scheduler(void)
     #endif
     #if defined(LB)
       sched_lb();
+    #endif
     #if defined(PBS)
       sched_pbs();
     #endif
@@ -1008,7 +1026,16 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s", p->pid, state, p->name);
+    #if (defined(RR) || defined(FCFS))
+    printf("%d %s %s rtime: %d stime: %d", p->pid, state, p->name, p->rtime, p->stime);
+    #endif
+    #if defined(PBS)
+    printf("%d %s %s rtime: %d stime: %d priority: %d nrun: %d", p->pid, state, p->name, p->rtime, p->stime, p->priority, p->nrun);
+    #endif
+    #if defined(LB)
+    printf("%d %s %s rtime: %d stime: %d tickets: %d", p->pid, state, p->name, p->rtime, p->stime, p->tickets);
+    #endif
+    
     printf("\n");
   }
 }

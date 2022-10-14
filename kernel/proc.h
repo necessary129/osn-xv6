@@ -119,12 +119,12 @@ struct proc {
   uint etime;                   // When did the process exited
   uint stime;                   // How long process is sleeping
 
-  int niceness;
-
+  #if defined(LB)
   uint tickets;                 // How many tickets the process has
+  #endif
 
-  uint stime;
-
+  #if defined(PBS)
   int priority;
   int nrun;
+  #endif
 };
