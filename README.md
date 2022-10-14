@@ -37,6 +37,18 @@ are calculated on the spot.
 If the calculated priority is same for two processes, we tie break using hte number of times the process has run. We save that in a `nrun` variable
 in the proc struct. If the tie still exists, we tie break using the process creation time.
 
+## 2.d `MLFQ`
+
+MLFQ has 5 queues. The process enters the first queue -- the highest priority queue first. but has limited time quanta available. After that, it will be 
+moved to a higher queue. Where the time quanta is increased. 
+
+MLFQ will always run the highest priority process. Even when running a lower priority process, if a higher priority process starts, MLFQ will preempt it
+and run the higher priority project. We keep track of the time the process waits in queue also and if it goes above a specified limit -- 20 ticks at the moment
+(defined in `defs.h` as `MAXAGE`), the process will be moved down a priority queue.
+
+Processes which are sleeping are removed from the queue and are added back in when the require CPU -- processes can abuse this my running for a little below
+their their time quanta, then sleeping, and then start again, as the time quanta assigned to it is reset, it can always stay in the same queue.
+
 ## 3 COW Fork
 
 We keep track of all references to a page from all pagetables in a static array. On `kfree`, we decrease the reference and only really mark the page free
@@ -49,3 +61,12 @@ Then, when a process tries to write to that PTE, a pagefault will be generated. 
 The new page will be writable. We decrement the reference to that page also.
 
 When the reference is just 1, we dont copy and just set the PTE as writable.
+
+
+## Analysis of MLFQ
+
+As we can see in the ![analysisimage](analysis/Figure_1.png) The initial high priority queues
+are always run first but their time quanta runs out fast. We can also wee some processes aging and going to high priority again.
+
+We can also see some processes staying in high priority -- they are the sleeping processes. processes can abuse this my running for a little below
+their their time quanta, then sleeping, and then start again, as the time quanta assigned to it is reset, it can always stay in the same queue.

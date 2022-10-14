@@ -7,6 +7,10 @@
 #include "defs.h"
 #include "queue.h"
 
+#if defined(CSVCLOCKDUMP)
+extern struct proc proc[NPROC];
+#endif
+
 struct spinlock tickslock;
 uint ticks;
 
@@ -113,6 +117,18 @@ void mlfq_intr(){
     }
 }
 #endif
+#if defined(CSVCLOCKDUMP)
+void csvclockdump()
+{
+  struct proc *p = 0;
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    if (p->state == UNUSED)
+      continue;
+    printf("%d,%d,%d\n", ticks, p->pid, p->qlevel);
+  }
+}
+#endif
 
 void
 usertrap(void)
@@ -163,8 +179,11 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
     checkalarm(p);
+#if defined(CSVCLOCKDUMP) && defined(MLFQ)
+    csvclockdump();
+#endif
 #if defined(MLFQ)
-    mlfq_intr();
+        mlfq_intr();
 #endif
 #if (PREEMPTIVE && ! defined(MLFQ))
 	yield();

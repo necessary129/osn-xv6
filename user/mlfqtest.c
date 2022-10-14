@@ -39,7 +39,7 @@ int main()
 #ifndef FCFS
       }
 #endif
-      printf("\n%d", n);
+      // printf("\n%d", n);
       exit(0);
     }
     else
@@ -57,6 +57,6 @@ int main()
       twtime += wtime;
     }
   }
-  printf("\nAverage rtime %d,  wtime %d\n", trtime / NFORK, twtime / NFORK);
+  // printf("\nAverage rtime %d,  wtime %d\n", trtime / NFORK, twtime / NFORK);
   exit(0);
 }
