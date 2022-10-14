@@ -164,7 +164,8 @@ found:
   p->rtime = 0;
   p->etime = 0;
   p->stime = 0;
-
+  p->priority = 60;
+  p->nrun = 0;
 
   p->trace_mask = 0;
   p->inalarm = 0;
@@ -196,6 +197,9 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->priority = 60;
+  p->nrun = 0;
+
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -578,12 +582,20 @@ void sched_pbs() {
         else
           niceness = 5;
         dp = max(0, min(p->priority - niceness + 5, 100));
-        if (dp >= maxdp){
+        if (dp > maxdp){
           if (ep)
             release(&ep->lock);
           maxdp = dp;
           ep = p;
           continue;
+        } else if (dp == maxdp){
+          if (p->nrun < ep->nrun){
+            release(&ep->lock);
+            ep = p;
+          } else if (p->ctime > ep->ctime){
+            release(&ep->lock);
+            ep = p;
+          }
         }
       }
       release(&p->lock);
@@ -595,6 +607,7 @@ void sched_pbs() {
   if (p->state == RUNNABLE){
     p->state = RUNNING;
     c->proc = p;
+    p->nrun++;
     swtch(&c->context, &p->context);
     c->proc = 0;
   }

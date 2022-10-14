@@ -120,4 +120,5 @@ struct proc {
   uint stime;
 
   int priority;
+  int nrun;
 };
