@@ -148,6 +148,7 @@ UPROGS=\
 	$U/_cowtest\
 	$U/_schedulertest\
 	$U/_lotterytest1\
+	$U/_mlfqtest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

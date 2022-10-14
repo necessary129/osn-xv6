@@ -131,6 +131,7 @@ struct proc {
   #if defined(MLFQ)
   int qlevel;
   int qwaittime;
+  int qentered;
   int inqueue;
   int qticks;
   #endif

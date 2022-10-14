@@ -223,6 +223,8 @@ found:
   p->inqueue = 0;
   p->qlevel = 0;
   p->qticks = 1;
+  p->qentered = ticks;
+  p->qwaittime = -1;
   #endif
 
   return p;
@@ -742,7 +744,7 @@ void sched_mlfq()
   struct cpu *c = mycpu();
   for (p = proc; p < &proc[NPROC]; p++)
   {
-    if (p->qwaittime > MAXAGE && p->qlevel > 0)
+    if (p->inqueue && (p->qwaittime = ticks - p->qentered) > MAXAGE && p->qlevel > 0)
     {
       remove_queue(p, p->qlevel);
       push_back(p, p->qlevel - 1);

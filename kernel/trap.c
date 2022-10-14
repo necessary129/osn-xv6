@@ -81,6 +81,37 @@ int cowfault(pagetable_t pagetable, uint64 va){
 	return 0;
 }
 
+#if defined(MLFQ)
+void mlfq_intr(){
+      struct proc *p = myproc();
+    if (p && p->state == RUNNING)
+    {
+      p->qticks--;
+      if (p->qticks <= 0)
+      {
+        remove_queue(p, p->qlevel);
+        int qnum = (p->qlevel >= 4) ? 4 : p->qlevel + 1;
+        push_back(p, qnum);
+        p->qticks = (1 << p->qlevel);
+        yield();
+      }
+      else
+      {
+        for (int i = 0; i < p->qlevel; i++)
+        {
+          if (queue.size[i])
+          {
+            p->qticks = (1 << p->qlevel);
+            remove_queue(p, p->qlevel);
+            push_back(p, p->qlevel);
+            yield();
+          }
+        }
+      }
+    }
+}
+#endif
+
 void
 usertrap(void)
 {
@@ -131,33 +162,7 @@ usertrap(void)
   if(which_dev == 2){
     checkalarm(p);
 #if defined(MLFQ)
-    struct proc *p = myproc();
-    if (p && p->state == RUNNING)
-    {
-      p->qticks--;
-      if (p->qticks <= 0)
-      {
-        remove_queue(p, p->qlevel);
-        int qnum = (p->qlevel >= 4) ? 4 : p->qlevel + 1;
-        push_back(p, qnum);
-        p->qticks = (1 << p->qlevel);
-        yield();
-      }
-      else
-      {
-        for (int i = 0; i < p->qlevel; i++)
-        {
-          if (queue.size[i])
-          {
-            p->qticks = (1 << p->qlevel);
-            remove_queue(p, p->qlevel);
-            push_back(p, p->qlevel);
-            yield();
-          }
-        }
-      }
-    }
-
+    mlfq_intr();
 #endif
 #if (PREEMPTIVE && ! defined(MLFQ))
 	yield();
@@ -238,37 +243,11 @@ kerneltrap()
   {
     checkalarm(myproc()); // Do we count kernel mode also?
 #if defined(MLFQ)
-    struct proc *p = myproc();
-    if (p && p->state == RUNNING)
-    {
-      p->qticks--;
-      if (p->qticks <= 0)
-      {
-        remove_queue(p, p->qlevel);
-        int qnum = (p->qlevel >= 4) ? 4 : p->qlevel + 1;
-        push_back(p, qnum);
-        p->qticks = (1 << p->qlevel);
-        yield();
-      }
-      else
-      {
-        for (int i = 0; i < p->qlevel; i++)
-        {
-          if (queue.size[i])
-          {
-            p->qticks = (1 << p->qlevel);
-            remove_queue(p, p->qlevel);
-            push_back(p, p->qlevel);
-            yield();
-          }
-        }
-      }
-    }
-
+    mlfq_intr();
 #endif
 #if (PREEMPTIVE && ! defined(MLFQ))
-	if (myproc()->state == RUNNING)
-	  yield();
+    if (myproc()->state == RUNNING)
+      yield();
 #endif
   }
 

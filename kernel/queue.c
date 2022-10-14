@@ -35,6 +35,7 @@ void push_back(struct proc *p, int qnum)
   p->qlevel = qnum;
   p->qticks = (1 << qnum);
   p->qwaittime = 0;
+  p->qentered = ticks;
 }
 
 void remove_queue(struct proc *p, int qnum)
@@ -52,6 +53,8 @@ void remove_queue(struct proc *p, int qnum)
   if (found == -1)
     return;
   p->inqueue = 0;
+  p->qentered = 0;
+  p->qwaittime = -1;
   queue.size[qnum]--;
   for (int i = found + 1; i < NPROC; i++)
   {
