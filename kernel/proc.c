@@ -16,8 +16,11 @@ struct proc *initproc;
 int nextpid = 1;
 struct spinlock pid_lock;
 
+
+#if defined(MLFQ)
 extern struct proc *procmlfq[NQUEUE][NPROC];
 extern struct queue queue;
+# endif
 extern void forkret(void);
 static void freeproc(struct proc *p);
 
@@ -649,7 +652,7 @@ void sched_pbs() {
           niceness = p->stime / (p->stime + p->rtime) * 10;
         else
           niceness = 5;
-        dp = max(0, min(p->priority - niceness + 5, 100));
+        dp = max(0, min(100 - p->priority - niceness + 5, 100));
         if (dp > maxdp){
           if (ep)
             release(&ep->lock);
@@ -660,9 +663,11 @@ void sched_pbs() {
           if (p->nrun < ep->nrun){
             release(&ep->lock);
             ep = p;
+            continue;
           } else if (p->ctime > ep->ctime){
             release(&ep->lock);
             ep = p;
+            continue;
           }
         }
       }

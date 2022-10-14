@@ -3,14 +3,17 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
-#define NFORK 10
-#define IO 5
+// #ifdef FCFS
+// #define NFORK 5
+// #endif
+// #ifndef FCFS
+#define NFORK 5
+#define IO 2
+// #endif
 
 int main()
 {
   int n, pid;
-  int wtime, rtime;
-  int twtime = 0, trtime = 0;
   for (n = 0; n < NFORK; n++)
   {
     pid = fork();
@@ -18,38 +21,86 @@ int main()
       break;
     if (pid == 0)
     {
-#ifndef FCFS
-      if (n < IO)
+#ifdef FCFS
+        if (n < IO) {
+      sleep(200); // IO bound processes
+        } else {
+      for (volatile int j = 0; j < 1000000000; j++)
       {
-        sleep(200); // IO bound processes
+      }}
+      
+      
+#endif
+#ifdef PBS
+      for (volatile int i = 0; i < 70; i++)
+      {
+        for (volatile int j = 0; j < 100000000; j++)
+        {
+        }
+        sleep(5);
+      } // MIXED bound process
+#endif
+#ifdef LB
+      if (n == 0)
+      {
+        settickets(100);
+        printf("pid %d has 100 tickets\n", getpid());
       }
       else
       {
-#endif
-        for (volatile int i = 0; i < 1000000000; i++)
+        settickets(1);
+        printf("pid %d has 1 tickets\n", getpid());
+      }
+      for (volatile int i = 0; i < 100; i++)
+      {
+        for (volatile int j = 0; j < 100000000; j++)
         {
-        } // CPU bound process
-#ifndef FCFS
+        }
+        sleep(1);
       }
 #endif
-      printf("\n%d", n);
+#ifdef MLFQ
+      if (n < IO)
+      {
+        // CPU
+        for (volatile int i = 0; i < 100; i++)
+        {
+          for (volatile int j = 0; j < 100000000; j++)
+          {
+          }
+          sleep(20);
+        }
+      }
+      else
+      {
+        // IO
+        for (volatile int i = 0; i < 1000; i++)
+        {
+          for (volatile int j = 0; j < 5000000; j++)
+          {
+          }
+          sleep(5);
+        }
+      }
+#endif
+      printf("Process %d finished\n", getpid());
       exit(0);
     }
     else
     {
 #ifdef PBS
-      set_priority(60 - IO + n, pid); // Will only matter for PBS, set lower priority for IO bound processes
+      if (n % 2 == 1)
+      {
+        set_priority(80, pid); // Will only matter for PBS, set lower priority for IO bound processes
+      }
 #endif
     }
   }
   for (; n > 0; n--)
   {
-    if (waitx(0, &wtime, &rtime) >= 0) // fixed :)
+    if (wait(0) >= 0)
     {
-      trtime += rtime;
-      twtime += wtime;
     }
   }
-  printf("\nAverage rtime %d,  wtime %d\n", trtime / NFORK, twtime / NFORK);
   exit(0);
 }

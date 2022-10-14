@@ -27,7 +27,9 @@ main()
     binit();         // buffer cache
     iinit();         // inode table
     fileinit();      // file table
+    #if defined(MLFQ)
     init_queue();
+    #endif
     virtio_disk_init(); // emulated hard disk
     userinit();      // first user process
     __sync_synchronize();

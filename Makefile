@@ -76,7 +76,10 @@ CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 CFLAGS += -D $(SCHEDULER)
+
+ifneq ($(ADDFLAGS), "")
 CFLAGS += -D $(ADDFLAGS)
+endif
 
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)
@@ -154,7 +157,11 @@ UPROGS=\
 	$U/_cowtest\
 	$U/_schedulertest\
 	$U/_lotterytest1\
-	$U/_mlfqtest\
+	$U/_mlfqtest
+
+ifeq ($(SCHEDULER), PBS)
+UPROGS += $U/_setpriority
+endif
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
