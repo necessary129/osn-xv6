@@ -190,5 +190,13 @@ void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
 
+// queue.c
+void init_queue();
+void push_back(struct proc *p, int qnum);
+struct proc * pop_front(int qnum);
+void remove_queue(struct proc *p, int qnum);
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+#define MAXAGE 20

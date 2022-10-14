@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "queue.h"
 
 struct cpu cpus[NCPU];
 
@@ -15,6 +16,8 @@ struct proc *initproc;
 int nextpid = 1;
 struct spinlock pid_lock;
 
+extern struct proc *procmlfq[NQUEUE][NPROC];
+extern struct queue queue;
 extern void forkret(void);
 static void freeproc(struct proc *p);
 
@@ -214,6 +217,12 @@ found:
   #if defined(LB)
   // Allocate at least one ticket so the process actually runs in LB scheduling
   p->tickets = 1;
+  #endif
+
+  #if defined(MLFQ)
+  p->inqueue = 0;
+  p->qlevel = 0;
+  p->qticks = 1;
   #endif
 
   return p;
@@ -726,7 +735,62 @@ void sched_rr(){
     }
 }
 #endif
+#if defined(MLFQ)
+void sched_mlfq()
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    if (p->qwaittime > MAXAGE && p->qlevel > 0)
+    {
+      remove_queue(p, p->qlevel);
+      push_back(p, p->qlevel - 1);
+    }
+    if (!p->inqueue && p->state == RUNNABLE)
+    {
+      push_back(p, p->qlevel);
+    }
+  }
+  struct proc *ep = 0;
+  int qnum = -1;
+  for (int i = 0; i < NQUEUE; i++)
+  {
+    for (int j = 0; j < NPROC; j++)
+    {
+      struct proc *p = procmlfq[i][j];
+      if (!p)
+      {
+        break;
+      }
+      acquire(&p->lock);
+      if (p->state == RUNNABLE)
+      {
+        ep = p;
+        qnum = i;
+        break;
+      }
+      release(&p->lock);
+    }
+    if (ep)
+      break;
+  }
+  if (!ep)
+    return;
+  if (ep->state == RUNNABLE)
+  {
+    remove_queue(ep, qnum);
+    ep->qticks = 1 << (ep->qlevel);
+    ep->qwaittime = 0;
+    ep->state = RUNNING;
+    c->proc = ep;
+    swtch(&c->context, &ep->context);
+    c->proc = 0;
+  }
+  release(&ep->lock);
+}
 
+#endif
 #if defined(LB)
 void sched_lb()
 {
@@ -803,6 +867,9 @@ scheduler(void)
     #endif
     #if defined(PBS)
       sched_pbs();
+    #endif
+    #if defined(MLFQ)
+      sched_mlfq();
     #endif
   }
 }
@@ -1035,7 +1102,10 @@ procdump(void)
     #if defined(LB)
     printf("%d %s %s rtime: %d stime: %d tickets: %d", p->pid, state, p->name, p->rtime, p->stime, p->tickets);
     #endif
-    
+    #if (defined(MLFQ))
+    printf("%d %s %s rtime: %d stime: %d inqueue: %d qlevel: %d ticks_remaing: %d wait_time: %d", p->pid, state, p->name, p->rtime, p->stime, p->inqueue, p->qlevel, p->qticks, p->qwaittime);
+#endif
+
     printf("\n");
   }
 }

@@ -5,9 +5,13 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "queue.h"
 
 struct spinlock tickslock;
 uint ticks;
+
+extern struct proc *procmlfq[NQUEUE][NPROC];
+extern struct queue queue;
 
 extern char trampoline[], uservec[], userret[];
 
@@ -125,8 +129,37 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
-	checkalarm(p);
-#if PREEMPTIVE
+    checkalarm(p);
+#if defined(MLFQ)
+    struct proc *p = myproc();
+    if (p && p->state == RUNNING)
+    {
+      p->qticks--;
+      if (p->qticks <= 0)
+      {
+        remove_queue(p, p->qlevel);
+        int qnum = (p->qlevel >= 4) ? 4 : p->qlevel + 1;
+        push_back(p, qnum);
+        p->qticks = (1 << p->qlevel);
+        yield();
+      }
+      else
+      {
+        for (int i = 0; i < p->qlevel; i++)
+        {
+          if (queue.size[i])
+          {
+            p->qticks = (1 << p->qlevel);
+            remove_queue(p, p->qlevel);
+            push_back(p, p->qlevel);
+            yield();
+          }
+        }
+      }
+    }
+
+#endif
+#if (PREEMPTIVE && ! defined(MLFQ))
 	yield();
 #endif
   }
@@ -201,9 +234,39 @@ kerneltrap()
   }
 
   // give up the CPU if this is a timer interrupt.
-  if (which_dev == 2 && myproc() != 0){
-  	checkalarm(myproc()); // Do we count kernel mode also?
-#if PREEMPTIVE
+  if (which_dev == 2 && myproc() != 0)
+  {
+    checkalarm(myproc()); // Do we count kernel mode also?
+#if defined(MLFQ)
+    struct proc *p = myproc();
+    if (p && p->state == RUNNING)
+    {
+      p->qticks--;
+      if (p->qticks <= 0)
+      {
+        remove_queue(p, p->qlevel);
+        int qnum = (p->qlevel >= 4) ? 4 : p->qlevel + 1;
+        push_back(p, qnum);
+        p->qticks = (1 << p->qlevel);
+        yield();
+      }
+      else
+      {
+        for (int i = 0; i < p->qlevel; i++)
+        {
+          if (queue.size[i])
+          {
+            p->qticks = (1 << p->qlevel);
+            remove_queue(p, p->qlevel);
+            push_back(p, p->qlevel);
+            yield();
+          }
+        }
+      }
+    }
+
+#endif
+#if (PREEMPTIVE && ! defined(MLFQ))
 	if (myproc()->state == RUNNING)
 	  yield();
 #endif
