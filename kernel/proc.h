@@ -114,4 +114,7 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  uint rtime;                   // How long the process ran for
+  uint etime;                   // When did the process exited
 };

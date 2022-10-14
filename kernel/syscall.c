@@ -83,6 +83,7 @@ argstr(int n, char *buf, int max)
 extern uint64 sys_fork(void);
 extern uint64 sys_exit(void);
 extern uint64 sys_wait(void);
+extern uint64 sys_waitx(void);
 extern uint64 sys_pipe(void);
 extern uint64 sys_read(void);
 extern uint64 sys_kill(void);
@@ -133,7 +134,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_trace]   sys_trace,
 [SYS_sigalarm]   sys_sigalarm,
 [SYS_sigreturn]   sys_sigreturn,
-
+[SYS_waitx]   sys_waitx,
 };
 
 static uint16 syscall_nargs[] = {
@@ -159,6 +160,8 @@ static uint16 syscall_nargs[] = {
 [SYS_mkdir]   1,
 [SYS_close]   1,
 [SYS_trace]   1,
+[SYS_waitx]   3,
+
 };
 
 static char * syscall_names[] = {
@@ -184,6 +187,9 @@ static char * syscall_names[] = {
 [SYS_mkdir]   "mkdir",
 [SYS_close]   "close",
 [SYS_trace]   "trace",
+[SYS_waitx]   "waitx",
+
+
 };
 
 void
