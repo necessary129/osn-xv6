@@ -43,6 +43,40 @@ static inline void checkalarm(struct proc * p){
   }
 }
 
+int cowfault(pagetable_t pagetable, uint64 va){
+	if (va >= MAXVA)
+		return -1;
+	pte_t * pte = walk(pagetable, va, 0);
+	if (pte == 0)
+		return -1;
+	if (!(*pte & PTE_C))
+		return -1;
+	uint64 oldpa = PTE2PA(*pte);
+
+  if (safe_getref((void *)oldpa) == 1){
+    *pte = (*pte | PTE_W);
+    *pte = (*pte & ~PTE_C);
+    return 0;
+  }
+
+	uint64 newpa = (uint64) kalloc();
+
+	if (newpa == 0){
+		printf("cowfault: Cannot allocate new page\n");
+		return -1;
+	}
+
+	memmove((void *) newpa, (void *) oldpa, PGSIZE);
+	kfree((void *) oldpa);
+
+	uint64 flags = PTE_FLAGS(*pte);
+	flags &= ~PTE_C;
+	flags |= PTE_W;
+
+	*pte = PA2PTE(newpa) | flags;
+	return 0;
+}
+
 void
 usertrap(void)
 {
@@ -75,6 +109,9 @@ usertrap(void)
     intr_on();
 
     syscall();
+  } else if (r_scause() == 15 || r_scause() == 13) {
+	if (cowfault(p->pagetable, r_stval()) != 0)
+		setkilled(p);
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
