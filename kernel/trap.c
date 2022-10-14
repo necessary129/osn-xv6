@@ -10,8 +10,10 @@
 struct spinlock tickslock;
 uint ticks;
 
+#if defined(MLFQ)
 extern struct proc *procmlfq[NQUEUE][NPROC];
 extern struct queue queue;
+#endif
 
 extern char trampoline[], uservec[], userret[];
 
